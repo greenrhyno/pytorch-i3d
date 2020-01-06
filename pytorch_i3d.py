@@ -77,7 +77,7 @@ class Unit3D(nn.Module):
                                 bias=self._use_bias)
         
         if self._use_batch_norm:
-            self.bn = nn.BatchNorm3d(self._output_channels, eps=0.001, momentum=0.01)
+            self.bn = nn.BatchNorm3d(self._output_channels, eps=0.01, momentum=0.01)
 
     def compute_pad(self, dim, s):
         if s % self._stride[dim] == 0:
@@ -333,6 +333,7 @@ class InceptionI3d(nn.Module):
 
     def extract_features(self, x):
         for end_point in self.VALID_ENDPOINTS:
+            print(end_point)
             if end_point in self.end_points:
                 x = self._modules[end_point](x)
         return self.avg_pool(x)
