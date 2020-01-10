@@ -45,17 +45,14 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
     print("\n*******************\nExtracting Breakfast i3d Features\n")
     print("Mode: {}".format(mode))
     print("Root Data Directory: {}".format(root))
-    print("Train Split: {}".format(train_split))
-    print("Test Split: {}".format(test_split))
+    print("Video List: {}".format(video_list))
     print("Save Directory: {}\n".format(save_dir))
     
     # setup dataset
     test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
 
-    dataset = Dataset(train_split, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir)
+    dataset = Dataset(video_list, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)  
-
-    dataloaders = { 'val': dataloader }
     
     # setup the model
     if mode == 'flow':
@@ -69,7 +66,7 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
     i3d.train(False)  # Set model to evaluate mode
                 
     # Iterate over data.
-    for data in dataloaders[phase]:
+    for data in dataloader:
         # get the inputs
         inputs, name = data
         name = name[0]
