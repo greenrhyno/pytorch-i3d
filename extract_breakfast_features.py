@@ -5,7 +5,7 @@ import argparse
 
 ENDPOINT='Mixed_5c'
 DEF_MODE = 'flow'
-DEF_FRAME_WINDOW = 65
+DEF_FRAME_WINDOW = 65 # should be odd
 DEF_ROOT = '/mnt/raptor/ryan/breakfast_data'
 VIDEO_LIST = '/home/ryan/breakfast_splits/single_video.test'
 DEF_SAVE_DIR = '/mnt/raptor/ryan/breakfast_i3d/' + ENDPOINT
@@ -51,7 +51,9 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
     # setup dataset
     test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
 
-    dataset = Dataset(video_list, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir)
+    n_temporal_pad = int((DEF_FRAME_WINDOW - 1) / 2) 
+
+    dataset = Dataset(video_list, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir, pad=n_temporal_pad)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)  
     
     print(dataset.data)
@@ -74,12 +76,14 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
         # get the inputs
         inputs, name = data
         name = name[0]
-        print(name + SAVE_POSTFIX)
         save_file_name = name + SAVE_POSTFIX
+        # if features exist, skip video
         if os.path.exists(os.path.join(save_dir, save_file_name+'.npy')):
             continue
 
         b,c,t,h,w = inputs.shape
+        print("{} shape: {}".format(name, inputs.shape))
+
         if t > 1600:
             features = []
             for start in range(1, t-56, 1600):

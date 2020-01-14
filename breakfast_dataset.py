@@ -161,7 +161,7 @@ def make_dataset(split_file, split, root, mode):
 
 class Breakfast(data_utl.Dataset):
 
-    def __init__(self, split_file, split, root, mode, transforms=None, save_dir='', num=0):
+    def __init__(self, split_file, split, root, mode, transforms=None, save_dir='', num=0, pad=None):
         
         self.data = make_dataset(split_file, split, root, mode)
         self.split_file = split_file
@@ -169,6 +169,7 @@ class Breakfast(data_utl.Dataset):
         self.mode = mode
         self.root = root
         self.save_dir = save_dir
+        self.pad = pad
 
     def __getitem__(self, index):
         """
@@ -188,8 +189,19 @@ class Breakfast(data_utl.Dataset):
             # imgs = load_flow_frames(self.root, vid, 0, nf)
             imgs = extract_flow(self.root, vid + '.avi')
 
+        # imgs = self.transforms(imgs)
+
+        if self.pad:
+            if self.mode == 'rgb':
+                # pad array with edge values
+                imgs = np.concatenate((np.tile(imgs[0], (self.pad,1,1)), test, np.tile(imgs[-1], (self.pad,1,1)), axis=0) 
+            elif self.mode == 'flow':
+                sh = imgs.shape[1:]
+                n_frames
+                imgs = np.concatenate((np.zeros(sh, dtype=np.float32), imgs, np.zeros(sh, dtype=np.float32)), axis=0)
+                assert(imgs.shape[0] == nf + self.pad * 2)
+
         print("{} data shape: {}".format(vid, imgs.shape))
-        imgs = self.transforms(imgs)
 
         # TODO - return labels when parsing is implemented
         return video_to_tensor(imgs), vid
