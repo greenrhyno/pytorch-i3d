@@ -4,12 +4,12 @@ import sys
 import argparse
 
 ENDPOINT='Mixed_5c'
-DEF_MODE = 'rgb'
-DEF_FRAME_WINDOW = 45
-DEF_ROOT = '/home/ryan/Breakfast_15fps'
+DEF_MODE = 'flow'
+DEF_FRAME_WINDOW = 65
+DEF_ROOT = '/mnt/raptor/ryan/breakfast_data'
 VIDEO_LIST = '/home/ryan/breakfast_splits/single_video.test'
-DEF_SAVE_DIR = '/home/ryan/BreakfastII_15fps_i3d/' + ENDPOINT
-DEF_MODEL_SAVE_DIR = '/home/ryangreen/projects/i3d_models'
+DEF_SAVE_DIR = '/mnt/raptor/ryan/breakfast_i3d/' + ENDPOINT
+DEF_MODEL_SAVE_DIR = '/mnt/raptor/ryan/pytorch-i3d/saved_models'
 SAVE_POSTFIX = '_i3d_5c'
 
 parser = argparse.ArgumentParser()
@@ -18,8 +18,8 @@ parser.add_argument('-window', type=int, default=DEF_FRAME_WINDOW)
 parser.add_argument('-load_model', type=str, default='')
 parser.add_argument('-root', type=str, default=DEF_ROOT)
 parser.add_argument('-video_list', type=str, default=VIDEO_LIST)
-parser.add_argument('-gpu', type=str, default="6")
-parser.add_argument('-save_dir', type=str, default=DEF_MODEL_SAVE_DIR)
+parser.add_argument('-gpu', type=str, default="0")
+parser.add_argument('-save_dir', type=str, default=DEF_SAVE_DIR)
 
 args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"]=args.gpu
@@ -52,8 +52,10 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
     test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
 
     dataset = Dataset(video_list, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)  
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)  
     
+    print(dataset.data)
+
     # setup the model
     if mode == 'flow':
         i3d = InceptionI3d(400, in_channels=2, final_endpoint=ENDPOINT)
@@ -64,13 +66,15 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
     i3d.cuda()
 
     i3d.train(False)  # Set model to evaluate mode
+
+    print(len(dataloader))
                 
     # Iterate over data.
     for data in dataloader:
         # get the inputs
         inputs, name = data
         name = name[0]
-        print(name, SAVE_POSTFIX)
+        print(name + SAVE_POSTFIX)
         save_file_name = name + SAVE_POSTFIX
         if os.path.exists(os.path.join(save_dir, save_file_name+'.npy')):
             continue
@@ -81,7 +85,7 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
             for start in range(1, t-56, 1600):
                 end = min(t-1, start+1600+56)
                 start = max(1, start-48)
-                ip = Variable(torch.from_numpy(inputs.numpy()[:,:,start:end]).cuda(), volatile=True)
+                ip = Variable(torch.from_numpy(inputs.numpy()[:,:,start:end]).cuda())
                 features.append(i3d.extract_features(ip).squeeze(0).permute(1,2,3,0).data.cpu().numpy())
             np.save(os.path.join(save_dir, save_file_name), np.concatenate(features, axis=0))
         else:
