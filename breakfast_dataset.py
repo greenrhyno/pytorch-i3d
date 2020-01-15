@@ -30,45 +30,22 @@ def video_to_tensor(pic):
     return torch.from_numpy(pic.transpose([3,0,1,2]))
 
 # load rgb frames from collection of images
-# TODO - REWRITE to grab frames from cv2 VideoCapture
 def load_rgb_frames(parent_path, video_name):
     # compute optical rgb features
     print("Extracting rgb for {}".format(video_name))
     video_path = os.path.join(parent_path, video_name + VIDEO_FORMAT)
-    cap = cv2.VideoCapture(video_path)
-    ret, frame1 = cap.read()
-
-    if not ret:
+    vidcap = cv2.VideoCapture(video_path)
+    success,image = vidcap.read()
+    if not success:
         print('Could not read {}'.format(video_path))
         return
-
-    prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
-    print("Video shape {}".format(prvs.shape))
-    hsv = np.zeros_like(frame1)
-
-    count = 0
-    frame2 = frame1
-    flow_frames = []
-
-    while(ret):
-        # convert to grayscale
-        next = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
-        # compute flow
-        flow = cv2.calcOpticalFlowFarneback(prvs,next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-        flow = np.clip(flow, -20, 20) / 20
-        flow = resize(flow)
-        flow_frames.append(flow)
-
-        prvs = next
-        ret, frame2 = cap.read()
-        count += 1
-
-    cap.release()
-    flow_frames = np.asarray(flow_frames, dtype=np.float32)
-    if save:
-        np.save(flow_filename, flow_frames) # save optical flow features
-    print("{} flow frames shape: {}".format(video_name, flow_frames.shape))
-    return flow_frames
+    frames = []
+    while success:
+        image = resize(image)
+        image = (image/255.)*2 - 1 # normalize   
+        frames.append(image) 
+        success,image = vidcap.read()
+    return np.asarray(frames, dtype=np.float32)
 
 def resize(img, size=DEF_IMG_SIZE):
     w,h,c = img.shape
@@ -96,8 +73,6 @@ def extract_flow(parent_path, video_name, save=False):
         return
 
     prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
-    print("Video shape {}".format(prvs.shape))
-    hsv = np.zeros_like(frame1)
 
     count = 0
     frame2 = frame1
@@ -138,8 +113,6 @@ def make_dataset(split_file, split, root, mode):
     # assumes that split files are different for training / testing
     with open(split_file, 'r') as f:
         video_list = f.read().split('\n')[0:-1]
-
-    print("Making {} dataset with {} videos".format(split, len(video_list)))
 
     i = 0
     for vid in video_list:
@@ -197,7 +170,7 @@ class Breakfast(data_utl.Dataset):
                 pad = np.zeros((self.pad,) + sh, dtype=np.float32)
                 imgs = np.concatenate((pad, imgs, pad), axis=0)
 
-        print("{} data shape: {}".format(vid, imgs.shape))
+        # print("{} data shape: {}".format(vid, imgs.shape))
 
         # TODO - return labels when parsing is implemented
         return video_to_tensor(imgs), vid, n_frames
