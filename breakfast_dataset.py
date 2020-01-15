@@ -157,7 +157,7 @@ class Breakfast(data_utl.Dataset):
         if self.mode == 'rgb':
             imgs = load_rgb_frames(self.root, vid)
         else:
-            imgs = extract_flow(self.root, vid, save=False)
+            imgs = extract_flow(self.root, vid, save=True)
 
         n_frames = imgs.shape[0]
 
