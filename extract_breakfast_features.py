@@ -69,7 +69,7 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
 
     i3d.train(False)  # Set model to evaluate mode
 
-    print(len(dataloader))
+    print("Extracting features for {} videos".format(len(dataloader)))
                 
     # Iterate over data.
     for data in dataloader:
@@ -90,8 +90,11 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
             ip = Variable(torch.from_numpy(inputs.numpy()[:,:,frame_idx:frame_idx+window]).cuda())
             features.append(i3d.extract_features(ip).squeeze(0).permute(1,2,3,0).data.cpu().numpy())
         final_features = np.concatenate(features, axis=0)
-        np.save(os.path.join(save_dir, save_file_name), final_features)
-        print("{} features saved (shape: {})".format(save_file_name, final_features.shape))
+        try:
+            print("{} features saving (shape: {})".format(save_file_name, final_features.shape))
+            np.save(os.path.join(save_dir, save_file_name), final_features)
+        except Exception:
+            print("Could not be saved")
 
 
 if __name__ == '__main__':
