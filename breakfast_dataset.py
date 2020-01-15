@@ -14,6 +14,9 @@ import cv2
 
 DEF_IMG_SIZE = 226
 
+FLOW_POSTSCRIPT = '_opflow'
+VIDEO_FORMAT = '.avi'
+
 def video_to_tensor(pic):
     """Convert a ``numpy.ndarray`` to tensor.
     Converts a numpy.ndarray (T x H x W x C)
@@ -55,9 +58,16 @@ def resize(img, size=DEF_IMG_SIZE):
     return img
     
 
-def extract_flow(parent_path, video_name):
+def extract_flow(parent_path, video_name, save=False):
+    # check for precomputed features
+    flow_filename = os.path.join(parent_path, video_name + FLOW_POSTSCRIPT + '.npy')
+    if os.path.exists(flow_filename):
+        print("Found flow for {}".format(video_name))
+        return np.load(flow_filename)
+
+    # compute optical flow features
     print("Extracting flow for {}".format(video_name))
-    video_path = os.path.join(parent_path, video_name)
+    video_path = os.path.join(parent_path, video_name + VIDEO_FORMAT)
     cap = cv2.VideoCapture(video_path)
     ret, frame1 = cap.read()
 
@@ -88,6 +98,8 @@ def extract_flow(parent_path, video_name):
 
     cap.release()
     flow_frames = np.array(flow_frames)
+    if save:
+        np.save(flow_filename, flow_frames) # save optical flow features
     print("{} flow frames shape: {}".format(video_name, flow_frames.shape))
     return flow_frames
 
@@ -136,20 +148,10 @@ def make_dataset(split_file, split, root, mode):
         if not os.path.exists(vid_path + '.avi'):
             print("Cannot find video {}".format(vid_path))
             continue
-
-        # if mode == 'flow':
-        #     flow_path = vid_path + "_flow"
-        #     if not os.path.exists(flow_path):
-        #         print("Cannot find flow directory {}".format(flow_path))
-        #         continue
-        #     num_frames = len([f for f in os.listdir(flow_path) if not f[0] == '.'])
         
-        # else:
         num_frames = get_frame_count(vid_path + '.avi')
 
-            # if not num_frames == len(os.listdir(flow_path)):
-            #     print("{} Flow frames ({}) does not match rgb frames ({})".format(vid_path, len(os.listdir(flow_path)), num_frames))
-            #     continue
+        # TODO - check if features have already been extracted
             
         # TODO - are labels going to be used? If so, need to load / parse them
 
@@ -180,31 +182,29 @@ class Breakfast(data_utl.Dataset):
             tuple: (image, target) where target is class_index of the target class.
         """
         vid, nf = self.data[index]
-        # if os.path.exists(os.path.join(self.save_dir, vid+'.npy')):
-        #     return 0, 0, vid
 
         if self.mode == 'rgb':
             imgs = load_rgb_frames(self.root, vid, 0, nf)
         else:
             # imgs = load_flow_frames(self.root, vid, 0, nf)
-            imgs = extract_flow(self.root, vid + '.avi')
+            imgs = extract_flow(self.root, vid, save=True)
 
         # imgs = self.transforms(imgs)
 
         if self.pad:
             if self.mode == 'rgb':
                 # pad array with edge values
-                imgs = np.concatenate((np.tile(imgs[0], (self.pad,1,1)), test, np.tile(imgs[-1], (self.pad,1,1)), axis=0) 
+                imgs = np.concatenate((np.tile(imgs[0], (self.pad,1,1)), imgs, np.tile(imgs[-1], (self.pad,1,1))), axis=0) 
             elif self.mode == 'flow':
                 sh = imgs.shape[1:]
-                n_frames
-                imgs = np.concatenate((np.zeros(sh, dtype=np.float32), imgs, np.zeros(sh, dtype=np.float32)), axis=0)
-                assert(imgs.shape[0] == nf + self.pad * 2)
+                pad = np.zeros((self.pad,) + sh, dtype=np.float32)
+                imgs = np.concatenate((pad, imgs, pad), axis=0)
+                # assert(imgs.shape == (nf + self.pad * 2,) + sh)
 
         print("{} data shape: {}".format(vid, imgs.shape))
 
         # TODO - return labels when parsing is implemented
-        return video_to_tensor(imgs), vid
+        return video_to_tensor(imgs), vid, nf
 
     def __len__(self):
         return len(self.data)

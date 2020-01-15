@@ -10,7 +10,7 @@ DEF_ROOT = '/mnt/raptor/ryan/breakfast_data'
 VIDEO_LIST = '/home/ryan/breakfast_splits/single_video.test'
 DEF_SAVE_DIR = '/mnt/raptor/ryan/breakfast_i3d/' + ENDPOINT
 DEF_MODEL_SAVE_DIR = '/mnt/raptor/ryan/pytorch-i3d/saved_models'
-SAVE_POSTFIX = '_i3d_5c'
+SAVE_POSTFIX = '_i3d_' 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-mode', type=str, help='rgb or flow', default=DEF_MODE)
@@ -51,7 +51,7 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
     # setup dataset
     test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
 
-    n_temporal_pad = int((DEF_FRAME_WINDOW - 1) / 2) 
+    n_temporal_pad = int((window - 1) / 2) 
 
     dataset = Dataset(video_list, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir, pad=n_temporal_pad)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)  
@@ -74,29 +74,24 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
     # Iterate over data.
     for data in dataloader:
         # get the inputs
-        inputs, name = data
+        inputs, name, n_frames = data
         name = name[0]
-        save_file_name = name + SAVE_POSTFIX
+        save_file_name = name + SAVE_POSTFIX + '_' + mode
         # if features exist, skip video
-        if os.path.exists(os.path.join(save_dir, save_file_name+'.npy')):
-            continue
+        # if os.path.exists(os.path.join(save_dir, save_file_name+'.npy')): #TODO - add back in after testing
+        #     continue
 
         b,c,t,h,w = inputs.shape
         print("{} shape: {}".format(name, inputs.shape))
+        assert(t == n_frames + n_temporal_pad * 2)
 
-        if t > 1600:
-            features = []
-            for start in range(1, t-56, 1600):
-                end = min(t-1, start+1600+56)
-                start = max(1, start-48)
-                ip = Variable(torch.from_numpy(inputs.numpy()[:,:,start:end]).cuda())
-                features.append(i3d.extract_features(ip).squeeze(0).permute(1,2,3,0).data.cpu().numpy())
-            np.save(os.path.join(save_dir, save_file_name), np.concatenate(features, axis=0))
-        else:
-            # wrap them in Variable
-            inputs = Variable(inputs.cuda(), volatile=True)
-            features = i3d.extract_features(inputs)
-            np.save(os.path.join(save_dir, save_file_name), features.squeeze(0).permute(1,2,3,0).data.cpu().numpy())
+        features = []
+        for frame_idx in range(n_frames):
+            ip = Variable(torch.from_numpy(inputs.numpy()[:,:,frame_idx:frame_idx+window]).cuda())
+            features.append(i3d.extract_features(ip).squeeze(0).permute(1,2,3,0).data.cpu().numpy())
+        final_features = np.concatenate(features, axis=0)
+        np.save(os.path.join(save_dir, save_file_name), final_features)
+        print("{} features saved (shape: {})".format(save_file_name, final_features.shape))
 
 
 if __name__ == '__main__':
