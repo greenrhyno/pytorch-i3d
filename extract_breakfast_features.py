@@ -56,8 +56,6 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
 
     dataset = Dataset(video_list, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir, pad=n_temporal_pad)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)  
-    
-    print(dataset.data)
 
     # setup the model
     if mode == 'flow':
@@ -70,14 +68,14 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
 
     i3d.train(False)  # Set model to evaluate mode
 
-    print("Extracting features for {} videos".format(len(dataloader)))
+    print("Extracting features for {} videos\n".format(len(dataloader)))
                 
     # Iterate over data.
     for data in dataloader:
         # get the inputs
         inputs, name, n_frames = data
         name = name[0]
-        save_file_name = name + SAVE_POSTFIX + '_' + mode
+        save_file_name = name + SAVE_POSTFIX + mode
         # if features exist, skip video
         # if os.path.exists(os.path.join(save_dir, save_file_name+'.npy')): #TODO - add back in after testing
         #     continue
@@ -90,12 +88,14 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
         for frame_idx in range(n_frames):
             ip = Variable(torch.from_numpy(inputs.numpy()[:,:,frame_idx:frame_idx+window]).cuda())
             features.append(i3d.extract_features(ip).squeeze(0).permute(1,2,3,0).data.cpu().numpy())
-        final_features = np.concatenate(features, axis=0)
-        try:
-            print("{} features saving (shape: {})".format(save_file_name, final_features.shape))
-            np.save(os.path.join(save_dir, save_file_name), final_features)
-        except Exception:
-            print("Could not be saved")
+        final_features = np.asarray(features)
+        
+        # save extracted features
+        save_path = os.path.join(save_dir, save_file_name)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        print("{} features saving (shape: {})".format(save_file_name, final_features.shape))
+        np.save(save_path, final_features)
+
 
 
 if __name__ == '__main__':

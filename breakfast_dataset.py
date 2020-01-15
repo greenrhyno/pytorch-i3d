@@ -170,8 +170,6 @@ class Breakfast(data_utl.Dataset):
                 pad = np.zeros((self.pad,) + sh, dtype=np.float32)
                 imgs = np.concatenate((pad, imgs, pad), axis=0)
 
-        # print("{} data shape: {}".format(vid, imgs.shape))
-
         # TODO - return labels when parsing is implemented
         return video_to_tensor(imgs), vid, n_frames
 
