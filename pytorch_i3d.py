@@ -217,6 +217,9 @@ class InceptionI3d(nn.Module):
         if self._final_endpoint not in self.VALID_ENDPOINTS:
             raise ValueError('Unknown final endpoint %s' % self._final_endpoint)
 
+        self.avg_pool = nn.AvgPool3d(kernel_size=[2, 7, 7],
+                                     stride=(1, 1, 1))
+                                     
         self.end_points = {}
         end_point = 'Conv3d_1a_7x7'
         self.end_points[end_point] = Unit3D(in_channels=in_channels, output_channels=64, kernel_shape=[7, 7, 7],
@@ -322,8 +325,8 @@ class InceptionI3d(nn.Module):
             return
 
         end_point = 'Logits'
-        self.avg_pool = nn.AvgPool3d(kernel_size=[2, 7, 7],
-                                     stride=(1, 1, 1))
+        # self.avg_pool = nn.AvgPool3d(kernel_size=[2, 7, 7],
+        #                              stride=(1, 1, 1))
         self.dropout = nn.Dropout(dropout_keep_prob)
         self.logits = Unit3D(in_channels=384+384+128+128, output_channels=self._num_classes,
                              kernel_shape=[1, 1, 1],
