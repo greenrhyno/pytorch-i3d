@@ -6,10 +6,11 @@ import argparse
 ENDPOINT='Mixed_5c'
 DEF_MODE = 'flow'
 DEF_FRAME_WINDOW = 65 # should be odd
-DEF_ROOT = '/mnt/raptor/ryan/breakfast_data'
-VIDEO_LIST = '/home/ryan/breakfast_splits/single_video.test'
-DEF_SAVE_DIR = '/mnt/raptor/ryan/breakfast_i3d/' + ENDPOINT
-DEF_MODEL_SAVE_DIR = '/mnt/raptor/ryan/pytorch-i3d/saved_models'
+DEF_GPU = "0,1"
+DEF_ROOT = '/home/pegasus/mnt/raptor/ryan/breakfast_data'
+VIDEO_LIST = '/home/pegasus/home/ryan/breakfast_splits/single_video.test'
+DEF_SAVE_DIR = '/home/pegasus/mnt/raptor/ryan/breakfast_i3d/' + ENDPOINT
+DEF_MODEL_SAVE_DIR = '/home/pegasus/mnt/raptor/ryan/pytorch-i3d/saved_models'
 SAVE_POSTFIX = '_i3d_' 
 
 parser = argparse.ArgumentParser()
@@ -18,7 +19,7 @@ parser.add_argument('-window', type=int, default=DEF_FRAME_WINDOW)
 parser.add_argument('-load_model', type=str, default='')
 parser.add_argument('-root', type=str, default=DEF_ROOT)
 parser.add_argument('-video_list', type=str, default=VIDEO_LIST)
-parser.add_argument('-gpu', type=str, default="0")
+parser.add_argument('-gpu', type=str, default=DEF_GPU)
 parser.add_argument('-save_dir', type=str, default=DEF_SAVE_DIR)
 
 args = parser.parse_args()
