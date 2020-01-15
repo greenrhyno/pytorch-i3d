@@ -72,17 +72,17 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
                 
     # Iterate over data.
     for data in dataloader:
+        save_file_name = name + SAVE_POSTFIX + mode
+        save_path = os.path.join(save_dir, save_file_name)
+        # if features exist, skip video
+        if os.path.exists(save_path+'.npy'):
+            continue
+
         # get the inputs
         inputs, name, n_frames = data
         name = name[0]
-        save_file_name = name + SAVE_POSTFIX + mode
-        # if features exist, skip video
-        # if os.path.exists(os.path.join(save_dir, save_file_name+'.npy')): #TODO - add back in after testing
-        #     continue
 
         b,c,t,h,w = inputs.shape
-        print("{} shape: {}".format(name, inputs.shape))
-        assert(t == n_frames + n_temporal_pad * 2)
 
         features = []
         for frame_idx in range(n_frames):
@@ -91,11 +91,9 @@ def run(max_steps=64e3, window=DEF_FRAME_WINDOW, mode=DEF_MODE, root=DEF_ROOT, v
         final_features = np.asarray(features)
         
         # save extracted features
-        save_path = os.path.join(save_dir, save_file_name)
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        print("{} features saving (shape: {})".format(save_file_name, final_features.shape))
         np.save(save_path, final_features)
-
+        print("{} features extracted".format(save_file_name))
 
 
 if __name__ == '__main__':

@@ -32,7 +32,7 @@ def video_to_tensor(pic):
 # load rgb frames from collection of images
 def load_rgb_frames(parent_path, video_name):
     # compute optical rgb features
-    print("Extracting rgb for {}".format(video_name))
+    # print("Extracting rgb for {}".format(video_name))
     video_path = os.path.join(parent_path, video_name + VIDEO_FORMAT)
     vidcap = cv2.VideoCapture(video_path)
     success,image = vidcap.read()
@@ -59,11 +59,11 @@ def extract_flow(parent_path, video_name, save=False):
     # check for precomputed features
     flow_filename = os.path.join(parent_path, video_name + FLOW_POSTSCRIPT + '.npy')
     if os.path.exists(flow_filename):
-        print("Found flow for {}".format(video_name))
+        # print("Found flow for {}".format(video_name))
         return np.load(flow_filename)
 
     # compute optical flow features
-    print("Extracting flow for {}".format(video_name))
+    # print("Extracting flow for {}".format(video_name))
     video_path = os.path.join(parent_path, video_name + VIDEO_FORMAT)
     cap = cv2.VideoCapture(video_path)
     ret, frame1 = cap.read()
@@ -95,7 +95,7 @@ def extract_flow(parent_path, video_name, save=False):
     flow_frames = np.asarray(flow_frames, dtype=np.float32)
     if save:
         np.save(flow_filename, flow_frames) # save optical flow features
-    print("{} flow frames shape: {}".format(video_name, flow_frames.shape))
+    # print("{} flow frames shape: {}".format(video_name, flow_frames.shape))
     return flow_frames
 
 
